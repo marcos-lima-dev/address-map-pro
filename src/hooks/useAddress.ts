@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { addToHistory } from "@/actions/historyActions"; // <--- Importando a Server Action
 
 // Tipagem dos dados que nossa View precisa
 interface AddressState {
@@ -32,7 +33,7 @@ export function useAddress() {
   });
 
   const fetchAddress = async (cep: string) => {
-    // 1. Limpeza básica (remove traços e pontos)
+    // 1. Limpeza básica (remove traços e pontos para a URL)
     const cleanCep = cep.replace(/\D/g, "");
 
     if (cleanCep.length !== 8) {
@@ -60,6 +61,13 @@ export function useAddress() {
         uf: viaCepData.uf,
       });
 
+      // --- PASSO 1.5: SALVAR NO HISTÓRICO (SERVER ACTION) ---
+      // Salvamos de forma assíncrona. Usamos viaCepData.cep para manter a formatação (ex: 25070-210)
+      await addToHistory({
+        cep: viaCepData.cep, 
+        address: `${viaCepData.logradouro}, ${viaCepData.bairro} - ${viaCepData.localidade}/${viaCepData.uf}`
+      });
+
       // --- PASSO 2: Buscar coordenadas no Nominatim (OpenStreetMap) ---
       // Montamos uma query de busca: "Rua X, Cidade - UF"
       // Isso é necessário porque o ViaCEP não dá latitude/longitude
@@ -78,7 +86,7 @@ export function useAddress() {
         });
       } else {
         // Fallback: Se não achar a rua, tenta buscar apenas a Cidade
-        // (Melhor que não mostrar nada)
+        // (Melhor que não mostrar nada e travar o mapa)
         console.warn("Endereço exato não achado no mapa, buscando cidade...");
         const cityQuery = `${viaCepData.localidade} - ${viaCepData.uf}, Brasil`;
         const cityRes = await fetch(
@@ -96,8 +104,6 @@ export function useAddress() {
 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido ao buscar CEP.");
-      // Limpa dados em caso de erro grave, ou mantém o anterior? 
-      // Vamos manter para UX, mas você pode zerar se preferir.
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +114,6 @@ export function useAddress() {
     location,
     isLoading,
     error,
-    fetchAddress, // A função que vamos ligar no botão
+    fetchAddress, 
   };
 }
