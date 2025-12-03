@@ -7,29 +7,29 @@ interface AddressData {
 export function AddressDetails({ data }: { data: AddressData }) {
   return (
     <div className="p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 divide-y divide-[#e2e8f0] dark:divide-gray-700">
+      {/* AQUI: bg-white forçado para Light Mode */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 divide-y divide-slate-100 dark:divide-slate-700 border border-slate-100 dark:border-slate-700 transition-colors">
         
         <div className="grid grid-cols-[30%_1fr] gap-x-4 py-3">
-          <p className="text-[#64748b] dark:text-gray-400 text-sm font-normal">Logradouro</p>
-          <p className="text-[#0f172a] dark:text-gray-100 text-sm font-medium">{data.logradouro}</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Logradouro</p>
+          <p className="text-slate-900 dark:text-slate-100 text-sm font-medium">{data.logradouro || "..."}</p>
         </div>
 
         <div className="grid grid-cols-[30%_1fr] gap-x-4 py-3">
-          <p className="text-[#64748b] dark:text-gray-400 text-sm font-normal">Bairro</p>
-          <p className="text-[#0f172a] dark:text-gray-100 text-sm font-medium">{data.bairro}</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Bairro</p>
+          <p className="text-slate-900 dark:text-slate-100 text-sm font-medium">{data.bairro || "..."}</p>
         </div>
 
         <div className="grid grid-cols-[30%_1fr] gap-x-4 py-3">
-          <p className="text-[#64748b] dark:text-gray-400 text-sm font-normal">Cidade</p>
-          <p className="text-[#0f172a] dark:text-gray-100 text-sm font-medium">{data.cidade}</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Cidade</p>
+          <p className="text-slate-900 dark:text-slate-100 text-sm font-medium">{data.cidade || "..."}</p>
         </div>
 
       </div>
       
-      {/* Botão de Ação */}
       <div className="flex py-3 mt-4">
-        <button className="flex min-w-[84px] max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 flex-1 bg-[#5048e5] text-[#f9f8fb] text-base font-bold tracking-[0.015em] hover:bg-[#5048e5]/90 transition-all">
-          <span className="truncate">Confirmar Localização</span>
+        <button className="flex w-full h-12 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white text-base font-bold hover:opacity-90 transition-all shadow-md active:scale-95">
+          Confirmar Localização
         </button>
       </div>
     </div>

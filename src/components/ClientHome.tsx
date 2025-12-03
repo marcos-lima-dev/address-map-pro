@@ -1,78 +1,71 @@
-'use client'; 
+"use client";
 
 import { CepSearch } from "@/components/cep/CepSearch";
 import { AddressDetails } from "@/components/cep/AddressDetails";
-import { HistoryList } from "@/components/cep/HistoryList"; // Agora usamos o real
-import { useAddress } from "@/hooks/useAddress"; 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react"; // Adicione useState
+import { HistoryList } from "@/components/cep/HistoryList";
+import { useAddress } from "@/hooks/useAddress";
 import { HistoryItem } from "@/actions/historyActions";
+import dynamic from "next/dynamic";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation"; // <--- 1. Importar o Hook de Roteamento
 
-const Map = dynamic(() => import("@/components/map/MapView"), { 
+// Lazy loading do mapa
+const Map = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-slate-200 dark:bg-slate-800 animate-pulse rounded-xl flex items-center justify-center">
       <span className="text-slate-400 font-medium">Carregando mapa...</span>
     </div>
-  )
+  ),
 });
 
 export function ClientHome({ initialHistory }: { initialHistory: HistoryItem[] }) {
   const { address, location, isLoading, error, fetchAddress } = useAddress();
-  
-  // Estado local para atualizar a lista assim que buscar, sem precisar de F5
-  // (Otimistic UI update ou simples sync)
-  const [history, setHistory] = useState(initialHistory);
+  const router = useRouter(); // <--- 2. Instanciar o router
 
-  // Truque: Quando fizermos uma busca nova, precisamos atualizar a lista visualmente.
-  // Como o cookie é server-side, a forma mais simples num app pequeno é dar um refresh
-  // OU (melhor) atualizar o state local. 
-  // O Next.js tem um router.refresh() que recarrega os Server Components sem perder state.
-  
-  // Vamos simplificar: Ao buscar com sucesso, atualizamos a lista local.
-  // Mas como o 'addToHistory' está dentro do hook, vamos confiar no router.refresh() 
-  // ou apenas deixar o F5 mostrar. 
-  
-  // Para a entrevista ficar perfeita: 
-  // Vamos usar useRouter do next/navigation para dar um "Soft Refresh"
-  
-  /* Obs: No código final, idealmente o hook useAddress retornaria um 'onSuccess'
-     para a gente dar refresh na lista.
-  */
+  // Carrega o CEP padrão SOMENTE na primeira vez que entra na página
+  useEffect(() => {
+    fetchAddress("25070-210");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-      <main className="flex-1 w-full max-w-5xl mx-auto">
-        <CepSearch 
-          initialCep="25070-210" 
-          onSearch={(cep) => {
-             fetchAddress(cep);
-             // Pequeno hack para atualizar a lista após um delay (tempo do server action)
-             // Em prod usaríamos revalidatePath no server e router.refresh() aqui
-             setTimeout(() => {
-                 window.location.reload(); // Forma preguiçosa mas funcional pro teste
-                 // Se quiser a forma PRO, me avisa que trocamos por router.refresh()
-             }, 1500);
-          }} 
-          isLoading={isLoading}
-        />
+    <main className="flex-1 w-full max-w-5xl mx-auto p-4 space-y-4">
+      
+      {/* 1. Busca */}
+      <CepSearch
+        initialCep="25070-210"
+        onSearch={async (cep) => {
+          // <--- 3. A Lógica corrigida
+          // Await garante que o endereço foi buscado e o cookie salvo ANTES de atualizar
+          await fetchAddress(cep); 
+          
+          // O "Soft Refresh":
+          // Vai no servidor buscar o novo histórico, mas NÃO reseta o estado da tela (Mapa/Inputs)
+          router.refresh(); 
+        }}
+        isLoading={isLoading}
+      />
 
-        {error && (
-            <div className="px-4 mb-2">
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                    <strong className="font-bold">Ops! </strong>
-                    <span className="block sm:inline">{error}</span>
-                </div>
-            </div>
-        )}
-
-        <div className="flex px-4 py-3 h-[300px] md:h-[400px]">
-           <Map lat={location.lat} lng={location.lng} />
+      {/* Feedback de Erro */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+          <strong className="font-bold">Ops! </strong>
+          <span>{error}</span>
         </div>
+      )}
 
-        <AddressDetails data={address} />
-        
-        {/* Passamos o history para a lista */}
-        <HistoryList items={initialHistory} /> 
-      </main>
+      {/* 2. Mapa */}
+      <div className="w-full h-[300px] md:h-[400px] rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+        <Map lat={location.lat} lng={location.lng} />
+      </div>
+
+      {/* 3. Detalhes */}
+      <AddressDetails data={address} />
+
+      {/* 4. Histórico (Sempre atualizado pelo router.refresh) */}
+      <HistoryList items={initialHistory} />
+      
+    </main>
   );
 }
